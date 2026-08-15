@@ -1,0 +1,8 @@
+# Todo a LF: se desarrolla en Windows y se ejecuta en Linux.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary
+pnpm-lock.yaml -diff

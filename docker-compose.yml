@@ -1,0 +1,56 @@
+name: bravo-credit
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: bravo-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-bravo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bravo_local_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-bravo_credit}
+      # Locale fijo para que el orden de los índices no dependa de la máquina.
+      POSTGRES_INITDB_ARGS: '--locale=C --encoding=UTF8'
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    command:
+      # Cada worker abre su pool y el relay del outbox mantiene una conexión fija
+      # para el LISTEN, así que el número por defecto se queda corto.
+      - postgres
+      - -c
+      - max_connections=200
+      - -c
+      - shared_buffers=256MB
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-bravo} -d ${POSTGRES_DB:-bravo_credit}']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  redis:
+    image: redis:7-alpine
+    container_name: bravo-redis
+    restart: unless-stopped
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis_data:/data
+    command:
+      # appendonly: los trabajos encolados sobreviven a un reinicio del contenedor.
+      - redis-server
+      - --appendonly
+      - 'yes'
+      - --maxmemory-policy
+      - noeviction
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  postgres_data:
+  redis_data:

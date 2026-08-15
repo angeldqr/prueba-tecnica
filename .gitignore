@@ -1,0 +1,70 @@
+# Dependencias
+node_modules/
+.pnpm-store/
+
+# Compilados
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Entorno
+.env
+.env.*
+!.env.example
+
+# Claves y certificados
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+
+# Los manifiestos de k8s llevan un secret de ejemplo; el real nunca se sube.
+infra/k8s/**/secret.yaml
+!infra/k8s/**/secret.example.yaml
+
+# Prisma
+apps/api/prisma/*.db
+apps/api/prisma/*.db-journal
+apps/api/src/generated/
+
+# Redis en local
+dump.rdb
+
+# Tests
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+
+# Cachés de herramientas
+.eslintcache
+.cache/
+.vite/
+.turbo/
+.vercel/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Editores
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.history/
+*.swp
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Tooling local de agentes
+.agents/
+.claude/
+skills-lock.json
