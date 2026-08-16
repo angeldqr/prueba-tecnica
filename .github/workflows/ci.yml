@@ -30,6 +30,11 @@ jobs:
       # contracts se compila primero: api y web dependen de sus tipos.
       - run: pnpm --filter @bravo/contracts build
 
+      # El cliente de Prisma no se versiona (depende del esquema, no al revés) y
+      # typecheck y test lo necesitan para resolver sus tipos. No hace falta una
+      # base de datos: generate solo lee el schema.
+      - run: pnpm --filter @bravo/api prisma:generate
+
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm typecheck
