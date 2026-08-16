@@ -7,7 +7,11 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-bravo}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bravo_local_dev}
+      # Los valores por defecto son los mismos que .env.example: quien levante la
+      # infraestructura antes de tener un .env obtiene igualmente credenciales que
+      # concuerdan con DATABASE_URL. initdb solo corre la primera vez, así que un
+      # desajuste aquí sobrevive a los reinicios.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bravo}
       POSTGRES_DB: ${POSTGRES_DB:-bravo_credit}
       # Locale fijo para que el orden de los índices no dependa de la máquina.
       POSTGRES_INITDB_ARGS: '--locale=C --encoding=UTF8'

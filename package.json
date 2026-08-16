@@ -19,7 +19,14 @@
     "typecheck": "pnpm -r typecheck"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "@prisma/client", "prisma", "argon2"]
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "@swc/core",
+      "@prisma/client",
+      "prisma",
+      "argon2",
+      "@prisma/engines"
+    ]
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",

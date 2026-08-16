@@ -1,0 +1,225 @@
+// Esquema de la plataforma de crédito multipaís.
+//
+// Dos tablas están particionadas y `prisma migrate` no sabe expresarlo, así que la
+// migración inicial se escribe a mano a partir del SQL que genera `migrate diff`:
+//
+//   credit_applications  LIST (country)      — las consultas operativas siempre
+//                                              filtran por país, y el scoping del
+//                                              §4.2 lo exige de todos modos.
+//   outbox_events        RANGE (created_at)  — es una cola: se recorre por fecha y
+//                                              se purga con DROP PARTITION, sin el
+//                                              bloat que deja un DELETE masivo.
+//
+// Particionar obliga a que la clave primaria contenga la clave de partición: de ahí
+// los @@id compuestos.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+// La URL vive en prisma.config.ts: desde Prisma 7 el esquema ya no la admite.
+datasource db {
+  provider = "postgresql"
+}
+
+enum Country {
+  ES
+  PT
+  IT
+  MX
+  CO
+  BR
+
+  @@map("country")
+}
+
+enum UserRole {
+  ADMIN
+  RISK_ANALYST
+  COUNTRY_OPERATOR
+  AUDITOR
+
+  @@map("user_role")
+}
+
+/// Debe coincidir con CREDIT_APPLICATION_STATUSES de @bravo/contracts.
+/// Hay un test que compara ambas listas para que no se separen.
+enum ApplicationStatus {
+  DRAFT
+  SUBMITTED
+  BANK_DATA_PENDING
+  BANK_DATA_RECEIVED
+  BANK_DATA_UNAVAILABLE
+  RISK_EVALUATING
+  AUTO_APPROVED
+  ADDITIONAL_REVIEW
+  MANUAL_REVIEW
+  COMPLIANCE_REVIEW
+  APPROVED
+  REJECTED
+  DISBURSED
+  CANCELLED
+  EXPIRED
+
+  @@map("application_status")
+}
+
+model User {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  fullName     String   @map("full_name")
+  role         UserRole
+
+  /// Países que este usuario puede ver. Vacío significa todos y solo se usa con ADMIN
+  /// y AUDITOR; el repositorio lo aplica en cada consulta, no solo el guard.
+  countries Country[]
+
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  applications CreditApplication[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model CreditApplication {
+  id      String  @default(uuid(7)) @db.Uuid
+  country Country
+
+  /// AES-256-GCM a nivel de aplicación. La base nunca ve el documento en claro.
+  documentEncrypted String @map("document_encrypted")
+  /// HMAC-SHA256 con pepper: permite buscar por documento sin descifrar nada.
+  documentHash      String @map("document_hash")
+  documentType      String @map("document_type") @db.VarChar(20)
+
+  applicantNameEncrypted String   @map("applicant_name_encrypted")
+  birthDate              DateTime @map("birth_date") @db.Date
+
+  requestedAmountMinor BigInt @map("requested_amount_minor")
+  currency             String @db.Char(3)
+  termMonths           Int    @map("term_months")
+  monthlyIncomeMinor   BigInt @map("monthly_income_minor")
+  employmentMonths     Int    @map("employment_months")
+
+  status ApplicationStatus @default(DRAFT)
+
+  /// Bloqueo optimista. Todo UPDATE lleva `WHERE version = :leida` y la incrementa;
+  /// si dos workers concurrentes tocan la misma solicitud, el segundo afecta a cero
+  /// filas y reintenta en lugar de pisar la escritura del primero.
+  version Int @default(0)
+
+  riskScore       Int?  @map("risk_score")
+  /// Violaciones de regla de la última evaluación, tal cual las devuelve el dominio.
+  decisionReasons Json? @map("decision_reasons")
+
+  createdById String? @map("created_by_id") @db.Uuid
+  createdBy   User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  bankSnapshots   BankSnapshot[]
+  statusHistory   ApplicationStatusHistory[]
+
+  @@id([id, country])
+  /// Un mismo documento no puede tener dos solicitudes vivas en el mismo país.
+  /// El índice es parcial: los expedientes cerrados no compiten por la unicidad.
+  @@index([country, status, createdAt(sort: Desc)])
+  @@index([country, documentHash])
+  @@index([createdAt(sort: Desc), id])
+  @@map("credit_applications")
+}
+
+/// Datos que devuelve el proveedor bancario. Vive aparte de la solicitud porque
+/// nunca se serializa: la API solo expone los derivados que calcula el dominio.
+model BankSnapshot {
+  id            String  @id @default(uuid(7)) @db.Uuid
+  applicationId String  @map("application_id") @db.Uuid
+  country       Country
+
+  provider   String   @db.VarChar(40)
+  fetchedAt  DateTime @map("fetched_at") @db.Timestamptz(6)
+  /// Respuesta cruda del proveedor, cifrada. Se conserva para poder auditar una
+  /// decisión meses después sin volver a pedírsela a un tercero.
+  rawEncrypted String @map("raw_encrypted")
+
+  monthlyDebtPaymentsMinor BigInt @map("monthly_debt_payments_minor")
+  totalDebtMinor           BigInt @map("total_debt_minor")
+  /// Normalizado a 0–1000 por el mapper del proveedor, venga en la escala que venga.
+  creditScore              Int    @map("credit_score")
+  delinquencies            Int
+  activeLoans              Int    @map("active_loans")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  application CreditApplication @relation(fields: [applicationId, country], references: [id, country], onDelete: Cascade)
+
+  @@index([applicationId, country])
+  @@index([country, fetchedAt(sort: Desc)])
+  @@map("bank_snapshots")
+}
+
+model ApplicationStatusHistory {
+  id            String  @id @default(uuid(7)) @db.Uuid
+  applicationId String  @map("application_id") @db.Uuid
+  country       Country
+
+  fromStatus ApplicationStatus? @map("from_status")
+  toStatus   ApplicationStatus  @map("to_status")
+  reason     String?
+  /// Quién lo cambió: el id de un usuario, o el nombre del worker si fue automático.
+  actor      String             @db.VarChar(120)
+
+  correlationId String?  @map("correlation_id") @db.VarChar(128)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  application CreditApplication @relation(fields: [applicationId, country], references: [id, country], onDelete: Cascade)
+
+  @@index([applicationId, country, createdAt])
+  @@index([correlationId])
+  @@map("application_status_history")
+}
+
+/// El trigger de credit_applications escribe aquí y avisa por pg_notify. El relay
+/// reclama filas con FOR UPDATE SKIP LOCKED y las encola en BullMQ usando el id del
+/// evento como jobId, así que reintentar nunca duplica trabajo.
+model OutboxEvent {
+  id String @default(uuid(7)) @db.Uuid
+
+  /// Orden total de escritura, que created_at por sí solo no da: dentro de una
+  /// transacción todas las filas comparten el instante de inicio y empatarían.
+  /// Lo rellena una secuencia de Postgres; aquí solo se lee y se ordena por él.
+  sequence BigInt
+
+  aggregateType String  @map("aggregate_type") @db.VarChar(60)
+  aggregateId   String  @map("aggregate_id") @db.Uuid
+  country       Country
+  eventType     String  @map("event_type") @db.VarChar(80)
+  payload       Json
+
+  correlationId String? @map("correlation_id") @db.VarChar(128)
+
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  processedAt DateTime? @map("processed_at") @db.Timestamptz(6)
+  attempts    Int       @default(0)
+  lastError   String?   @map("last_error")
+
+  @@id([id, createdAt])
+  @@index([aggregateId])
+  @@map("outbox_events")
+}
+
+/// Webhooks entrantes ya procesados. Un reenvío del proveedor con el mismo event_id
+/// se descarta en vez de volver a mover la solicitud.
+model ProcessedWebhook {
+  eventId    String   @id @map("event_id") @db.VarChar(200)
+  provider   String   @db.VarChar(40)
+  receivedAt DateTime @default(now()) @map("received_at") @db.Timestamptz(6)
+
+  @@index([receivedAt])
+  @@map("processed_webhooks")
+}

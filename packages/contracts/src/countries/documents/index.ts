@@ -8,7 +8,14 @@ import { ptNifValidator } from './pt-nif';
 import type { DocumentValidationResult, DocumentValidator } from './types';
 
 export * from './types';
-export { brCpfValidator, coCedulaValidator, esDniValidator, itCodiceFiscaleValidator, mxCurpValidator, ptNifValidator };
+export {
+  brCpfValidator,
+  coCedulaValidator,
+  esDniValidator,
+  itCodiceFiscaleValidator,
+  mxCurpValidator,
+  ptNifValidator,
+};
 
 /**
  * Registro de validadores indexado por país. Al ser un `Record` completo sobre

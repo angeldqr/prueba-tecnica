@@ -1,0 +1,11 @@
+node_modules/
+dist/
+build/
+.next/
+coverage/
+
+# Lo genera pnpm; reformatearlo solo produce ruido en los diffs.
+pnpm-lock.yaml
+
+# Cliente que genera Prisma en cada `prisma generate`.
+apps/api/src/generated/

@@ -1,4 +1,10 @@
-import { type DocumentValidationResult, type DocumentValidator, invalid, normalizeDocument, valid } from './types';
+import {
+  type DocumentValidationResult,
+  type DocumentValidator,
+  invalid,
+  normalizeDocument,
+  valid,
+} from './types';
 
 /**
  * CPF brasileño (Cadastro de Pessoas Físicas).
@@ -47,12 +53,20 @@ export const brCpfValidator: DocumentValidator = {
 
     const first = checkDigit(doc.slice(0, 9), 10);
     if (first !== Number(doc.charAt(9))) {
-      return invalid('CPF', 'INVALID_CHECKSUM', `Primer dígito verificador incorrecto: se esperaba ${first}.`);
+      return invalid(
+        'CPF',
+        'INVALID_CHECKSUM',
+        `Primer dígito verificador incorrecto: se esperaba ${first}.`,
+      );
     }
 
     const second = checkDigit(doc.slice(0, 10), 11);
     if (second !== Number(doc.charAt(10))) {
-      return invalid('CPF', 'INVALID_CHECKSUM', `Segundo dígito verificador incorrecto: se esperaba ${second}.`);
+      return invalid(
+        'CPF',
+        'INVALID_CHECKSUM',
+        `Segundo dígito verificador incorrecto: se esperaba ${second}.`,
+      );
     }
 
     return valid('CPF', doc);

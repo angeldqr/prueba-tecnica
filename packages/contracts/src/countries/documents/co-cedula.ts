@@ -1,4 +1,10 @@
-import { type DocumentValidationResult, type DocumentValidator, invalid, normalizeDocument, valid } from './types';
+import {
+  type DocumentValidationResult,
+  type DocumentValidator,
+  invalid,
+  normalizeDocument,
+  valid,
+} from './types';
 
 /**
  * Cédula de Ciudadanía colombiana.
@@ -34,7 +40,11 @@ export const coCedulaValidator: DocumentValidator = {
     }
 
     if (!SHAPE.test(doc)) {
-      return invalid('CC', 'INVALID_FORMAT', 'La cédula solo puede contener dígitos y no puede empezar por cero.');
+      return invalid(
+        'CC',
+        'INVALID_FORMAT',
+        'La cédula solo puede contener dígitos y no puede empezar por cero.',
+      );
     }
 
     const numeric = Number(doc);

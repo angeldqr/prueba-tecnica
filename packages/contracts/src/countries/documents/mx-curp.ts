@@ -1,4 +1,10 @@
-import { type DocumentValidationResult, type DocumentValidator, invalid, normalizeDocument, valid } from './types';
+import {
+  type DocumentValidationResult,
+  type DocumentValidator,
+  invalid,
+  normalizeDocument,
+  valid,
+} from './types';
 
 /**
  * CURP mexicana (Clave Única de Registro de Población).
@@ -13,9 +19,39 @@ const CHECK_DIGIT_DICTIONARY = '0123456789ABCDEFGHIJKLMNÑOPQRSTUVWXYZ';
 
 /** Las 32 entidades federativas más NE para los nacidos en el extranjero. */
 const STATE_CODES = new Set([
-  'AS', 'BC', 'BS', 'CC', 'CL', 'CM', 'CS', 'CH', 'DF', 'DG', 'GT', 'GR',
-  'HG', 'JC', 'MC', 'MN', 'MS', 'NT', 'NL', 'OC', 'PL', 'QT', 'QR', 'SP',
-  'SL', 'SR', 'TC', 'TS', 'TL', 'VZ', 'YN', 'ZS', 'NE',
+  'AS',
+  'BC',
+  'BS',
+  'CC',
+  'CL',
+  'CM',
+  'CS',
+  'CH',
+  'DF',
+  'DG',
+  'GT',
+  'GR',
+  'HG',
+  'JC',
+  'MC',
+  'MN',
+  'MS',
+  'NT',
+  'NL',
+  'OC',
+  'PL',
+  'QT',
+  'QR',
+  'SP',
+  'SL',
+  'SR',
+  'TC',
+  'TS',
+  'TL',
+  'VZ',
+  'YN',
+  'ZS',
+  'NE',
 ]);
 
 const SHAPE = /^[A-Z][AEIOUX][A-Z]{2}\d{6}[HMX][A-Z]{2}[B-DF-HJ-NP-TV-Z]{3}[0-9A-Z]\d$/;

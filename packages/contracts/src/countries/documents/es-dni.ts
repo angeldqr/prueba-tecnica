@@ -1,4 +1,10 @@
-import { type DocumentValidationResult, type DocumentValidator, invalid, normalizeDocument, valid } from './types';
+import {
+  type DocumentValidationResult,
+  type DocumentValidator,
+  invalid,
+  normalizeDocument,
+  valid,
+} from './types';
 
 /**
  * DNI/NIE español.
