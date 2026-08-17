@@ -26,9 +26,15 @@ export function isCreditApplicationStatus(value: unknown): value is CreditApplic
   return typeof value === 'string' && (CREDIT_APPLICATION_STATUSES as readonly string[]).includes(value);
 }
 
-/** Una vez aquí la solicitud ya no se mueve. */
+/**
+ * Una vez aquí la solicitud ya no se mueve.
+ *
+ * APPROVED no está en la lista y no es un descuido: aprobar no cierra el expediente,
+ * todavía queda desembolsar. Contarlo como final lo sacaría del índice de expedientes
+ * vivos y, peor, del índice único de documento: el titular podría abrir una segunda
+ * solicitud mientras la primera sigue aprobada y sin cobrar.
+ */
 export const TERMINAL_STATUSES = [
-  'APPROVED',
   'REJECTED',
   'DISBURSED',
   'CANCELLED',
