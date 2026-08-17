@@ -1,0 +1,18 @@
+{
+  "name": "@bravo/mock-providers",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Proveedores bancarios simulados: seis formatos distintos, latencia y fallos inyectables",
+  "main": "./dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json && node dist/main.js",
+    "start": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,7 +1,8 @@
 import { Module, type MiddlewareConsumer, type NestModule } from '@nestjs/common';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { LoggerModule } from 'nestjs-pino';
-import { AppConfigModule, TypedConfigService } from '../config';
+import { TypedConfigService } from '../config';
+import { AppConfigModule } from '../config/config.module';
 import { CORRELATION_HEADER, currentContext, newCorrelationId, sanitizeCorrelationId } from './correlation';
 import { CorrelationMiddleware } from './correlation.middleware';
 import { REDACTED_PATHS, REDACTION_PLACEHOLDER } from './redaction';

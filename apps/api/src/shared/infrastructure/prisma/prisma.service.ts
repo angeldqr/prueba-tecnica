@@ -1,6 +1,6 @@
 import { Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { PinoLogger } from 'nestjs-pino';
 import { PrismaClient } from '../../../generated/prisma/client';
 import type { Prisma } from '../../../generated/prisma/client';
 import { TypedConfigService } from '../config';
@@ -21,7 +21,6 @@ type ClientOptions = { adapter: PrismaPg; log: typeof LOG_EVENTS };
 export class PrismaService extends PrismaClient<ClientOptions> implements OnModuleInit, OnModuleDestroy {
   constructor(
     config: TypedConfigService,
-    @InjectPinoLogger(PrismaService.name)
     private readonly logger: PinoLogger,
   ) {
     // Prisma 7 va sin motor propio: la conexión la abre el driver de node-postgres.
@@ -34,6 +33,8 @@ export class PrismaService extends PrismaClient<ClientOptions> implements OnModu
   }
 
   async onModuleInit(): Promise<void> {
+    this.logger.setContext(PrismaService.name);
+
     this.$on('warn', (event) => this.logger.warn({ target: event.target }, event.message));
     this.$on('error', (event) => this.logger.error({ target: event.target }, event.message));
 

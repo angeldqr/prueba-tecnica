@@ -1,6 +1,6 @@
 import { Catch, HttpException, HttpStatus, type ArgumentsHost, type ExceptionFilter } from '@nestjs/common';
 import type { Response } from 'express';
-import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { PinoLogger } from 'nestjs-pino';
 import { isDomainError, type DomainErrorCode } from '../domain/errors';
 // Del fichero concreto, no del barrel: este exporta también el módulo de logging, y
 // con él la llamada a ConfigModule.forRoot que valida el entorno al importarse.
@@ -28,10 +28,9 @@ interface ErrorBody {
 
 @Catch()
 export class DomainExceptionFilter implements ExceptionFilter {
-  constructor(
-    @InjectPinoLogger(DomainExceptionFilter.name)
-    private readonly logger: PinoLogger,
-  ) {}
+  constructor(private readonly logger: PinoLogger) {
+    this.logger.setContext(DomainExceptionFilter.name);
+  }
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const { status, body } = this.describe(exception);
